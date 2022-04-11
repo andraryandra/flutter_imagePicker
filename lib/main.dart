@@ -1,80 +1,114 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
 
 void main() {
-  runApp(new MaterialApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return new MaterialApp(
-      title: 'Flutter Demo',
-      theme: new ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MyHomePage(),
+      title: 'Home Page',
+      theme: ThemeData(
+        primaryColor: Colors.blue,
+      ),
+      home: HomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  final String title = "Fltuter Demo";
+class HomePage extends StatefulWidget {
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  File? image;
+class _HomePageState extends State<HomePage> {
+  File? _image;
 
-  Future getImage() async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? imagePicked =
-        await _picker.pickImage(source: ImageSource.gallery);
-    image = File(imagePicked!.path);
-    setState(() {});
+  Future getImage(ImageSource source) async {
+    try {
+      final image = await ImagePicker().pickImage(source: source);
+      if (image == null) return;
+
+      // final imageTemporary = File(image.path);
+      final imagePermanent = await saveFilePermanently(image.path);
+
+      setState(() {
+        this._image = imagePermanent;
+      });
+    } on PlatformException catch (e) {
+      print('Failed to pick image: $e');
+    }
   }
 
-  @override
-  void initState() {
-    super.initState();
+  Future<File> saveFilePermanently(String imagePath) async {
+    final directory = await getApplicationSupportDirectory();
+    final name = basename(imagePath);
+    final image = File('${directory.path}/$name');
+
+    return File(imagePath).copy(image.path);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text('Pick An Image'),
       ),
-      body: Container(
-          width: MediaQuery.of(context).size.width,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              image != null
-                  ? Container(
-                      height: 200,
-                      width: MediaQuery.of(context).size.width,
-                      child: Image.file(
-                        image!,
-                        fit: BoxFit.cover,
-                      ))
-                  : Container(),
-              TextButton(
-                  style:
-                      TextButton.styleFrom(backgroundColor: Colors.blueAccent),
-                  onPressed: () async {
-                    await getImage();
-                  },
-                  child: Text(
-                    'Open Image',
-                    style: TextStyle(color: Colors.white),
-                  )),
-            ],
-          )),
+      body: Center(
+        child: Column(children: [
+          SizedBox(
+            height: 40,
+          ),
+          _image != null
+              ? Image.file(
+                  _image!,
+                  width: 250,
+                  height: 250,
+                  fit: BoxFit.cover,
+                )
+              : Image.network('https://picsum.photos/250?image=9'),
+          SizedBox(
+            height: 40,
+          ),
+          CustomButton(
+            title: 'Pick from Gallery',
+            icon: Icons.image_outlined,
+            onClick: () => getImage(ImageSource.gallery),
+          ),
+          CustomButton(
+            title: 'Pick from Camera',
+            icon: Icons.camera,
+            onClick: () => getImage(ImageSource.camera),
+          ),
+        ]),
+      ),
     );
   }
+}
+
+Widget CustomButton({
+  required String title,
+  required IconData icon,
+  required VoidCallback onClick,
+}) {
+  return Container(
+    width: 200,
+    child: ElevatedButton(
+      onPressed: onClick,
+      child: Row(
+        children: [
+          Icon(icon),
+          Text(title),
+        ],
+      ),
+    ),
+  );
 }

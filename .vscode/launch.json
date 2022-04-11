@@ -10,6 +10,12 @@
             "type": "dart"
         },
         {
+            "name": "flutter_cobaan_imagepicker Web Renderer:HTML",
+            "request": "launch",
+            "type": "dart",
+            "args": ["--web-renderer","html"]
+        },
+        {
             "name": "flutter_cobaan_imagepicker (profile mode)",
             "request": "launch",
             "type": "dart",
